@@ -10,14 +10,9 @@ router.put('/:id',    controller.update);
 router.delete('/:id', controller.remove);
 router.get("/employee/:employeeId", controller.getByEmployee);
 router.get("/month-year", controller.getByMonthYear);
+router.post('/calculate', controller.calculatePayroll);
 
 module.exports = router;
-
-
-
-
-
-
 
 
 

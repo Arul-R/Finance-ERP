@@ -1,4 +1,4 @@
-const Client = require("../models/Client");
+const Client = require("../model/Client");
 
 exports.getAllClients = () => Client.find();
 exports.getClientById = (id) => Client.findById(id);

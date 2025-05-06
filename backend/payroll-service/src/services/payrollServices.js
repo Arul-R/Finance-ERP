@@ -12,6 +12,7 @@ exports.getPayrollById = id => Payroll.findById(id);
 exports.updatePayroll  = (id, data) => Payroll.findByIdAndUpdate(id, data, { new: true });
 exports.deletePayroll  = id => Payroll.findByIdAndDelete(id);
 
+
 // Create payroll and record expense
 exports.generateAndRecordExpense = async ({
   employeeId,

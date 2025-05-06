@@ -1,5 +1,59 @@
 // payroll-service/src/controllers/payrollController.js
 const payrollService = require('../services/payrollServices');
+const axios = require('axios');
+const Payroll = require('../models/Payroll');
+
+exports.calculatePayroll = async (req, res) => {
+  const { month, year } = req.body;
+
+  try {
+    // Fetch all employees
+    const { data: employees } = await axios.get('http://localhost:5001/api/employees');
+
+    const payrolls = [];
+
+    for (const emp of employees) {
+      // Fetch timelogs for the employee for the specified month
+      const { data: timelogs } = await axios.get('http://localhost:5006/api/timelogs', {
+        params: {
+          employeeId: emp.id,
+          dateFrom: `${year}-${month}-01`,
+          dateTo: `${year}-${month}-31`
+        }
+      });
+
+      const totalHours = timelogs.reduce((sum, log) => sum + log.hours_worked, 0);
+
+      if (totalHours >= 1) {
+        const hourlyRate = emp.baseSalary / 192;
+        let finalSalary;
+
+        if (totalHours <= 192) {
+          finalSalary = hourlyRate * totalHours;
+        } else {
+          const overtimeHours = totalHours - 192;
+          finalSalary = (hourlyRate * 192) + (hourlyRate * 1.5 * overtimeHours);
+        }
+
+        payrolls.push({
+          employeeId: emp.id,
+          month,
+          year,
+          baseSalary: emp.baseSalary,
+          hoursWorked: totalHours,
+          finalSalary
+        });
+      }
+    }
+
+    res.json(payrolls);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+
+
 
 exports.getAll = async (req, res) => {
   try {

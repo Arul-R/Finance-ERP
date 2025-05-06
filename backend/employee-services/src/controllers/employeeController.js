@@ -1,27 +1,30 @@
-const employeeService = require("../services/employeeService");
+const employeeServices = require('../services/employeeServices');
 
 exports.getAll = async (req, res) => {
-  const data = await employeeService.getAllEmployees();
+  const data = await employeeServices.getAllEmployees();
   res.json(data);
 };
 
 exports.getById = async (req, res) => {
-  const data = await employeeService.getEmployeeById(req.params.id);
-  if (!data) return res.status(404).json({ message: "Not found" });
+  const data = await employeeServices.getEmployeeById(req.params.id);
+  if (!data) return res.status(404).json({ message: 'Not found' });
   res.json(data);
 };
 
 exports.create = async (req, res) => {
-  const created = await employeeService.createEmployee(req.body);
-  res.status(201).json(created);
+  // 1) Create in DB
+  const emp = await employeeServices.createEmployee(req.body);
+  // 2) Publish event via Redis client stored in app.locals
+  await employeeServices.publishEmployeeCreated(req.app.locals.pub, emp);
+  res.status(201).json(emp);
 };
 
 exports.update = async (req, res) => {
-  const updated = await employeeService.updateEmployee(req.params.id, req.body);
+  const updated = await employeeServices.updateEmployee(req.params.id, req.body);
   res.json(updated);
 };
 
 exports.remove = async (req, res) => {
-  await employeeService.deleteEmployee(req.params.id);
-  res.json({ message: "Deleted" });
+  await employeeServices.deleteEmployee(req.params.id);
+  res.json({ message: 'Deleted' });
 };
