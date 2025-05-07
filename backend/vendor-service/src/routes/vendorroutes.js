@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const vendorController = require('../controller/vendorController');
+const vendorBillController = require('../controller/vendorBillController');
 
 // Create a new vendor
 router.post('/', vendorController.createVendor);
@@ -8,16 +9,25 @@ router.post('/', vendorController.createVendor);
 // Get all vendors
 router.get('/', vendorController.getAllVendors);
 
-// Get a single vendor by ID
-router.get('/:id', vendorController.getVendorById);
+// Get a single vendor
+router.get('/:vendorId', vendorController.getVendorById);
 
-// Update a vendor by ID
-router.put('/:id', vendorController.updateVendor);
+// Update a vendor
+router.put('/:vendorId', vendorController.updateVendor);
 
-// Delete a vendor by ID
-router.delete('/:id', vendorController.deleteVendor);
+// Delete a vendor
+router.delete('/:vendorId', vendorController.deleteVendor);
 
-+// Record a payment to this vendor (and push an expense)
-router.post('/:id/payments', vendorController.recordVendorPayment);
+// Get monthly bills
+router.post('/monthly-bills', vendorBillController.getMonthlyVendorBills);
+
+// Vendor-specific bill routes
+router.post('/:vendorId/bills', vendorBillController.createVendorBill);
+router.get('/:vendorId/bills', vendorBillController.getVendorBills);
+router.get('/bills/:billId', vendorBillController.getVendorBillById);
+router.put('/bills/:billId', vendorBillController.updateVendorBill);
+router.delete('/bills/:billId', vendorBillController.deleteVendorBill);
 
 module.exports = router;
+
+

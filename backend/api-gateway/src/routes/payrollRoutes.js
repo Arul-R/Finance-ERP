@@ -5,6 +5,7 @@ const router = express.Router();
 
 const PAYROLL_SERVICE_BASE = 'http://localhost:5004/api/payrolls';
 
+
 // GET all payrolls
 router.get('/', async (req, res) => {
   try {
@@ -29,11 +30,12 @@ router.post('/', async (req, res) => {
 router.post('/calculate', async (req, res) => {
   try {
     const response = await axios.post(`${PAYROLL_SERVICE_BASE}/calculate`, req.body);
-    res.json(response.data);
+    res.status(response.status).json(response.data);
   } catch (err) {
-    console.error(err?.response?.data || err.message);
-    res.status(500).json({ message: 'Failed to calculate payrolls' });
+    console.error('Error forwarding to Payroll:', err.message);
+    res.status(500).json({ message: 'Payroll calculation failed' });
   }
 });
+
 
 module.exports = router;

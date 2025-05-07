@@ -1,3 +1,6 @@
+// src/controller/vendorController.js
+const mongoose = require('mongoose');
+const axios  = require('axios');
 const Vendor = require('../model/vendor');
 
 // Create
@@ -12,7 +15,7 @@ exports.createVendor = async (req, res) => {
 };
 
 // Get All
-exports.getAllVendors = async (req, res) => {
+exports.getAllVendors = async (_req, res) => {
   try {
     const vendors = await Vendor.find();
     res.json(vendors);
@@ -21,10 +24,11 @@ exports.getAllVendors = async (req, res) => {
   }
 };
 
-// Get One
+// Get One by vendorId
 exports.getVendorById = async (req, res) => {
+  const { vendorId } = req.params;
   try {
-    const vendor = await Vendor.findById(req.params.id);
+    const vendor = await Vendor.findOne({vendorId});
     if (!vendor) return res.status(404).json({ error: 'Vendor not found' });
     res.json(vendor);
   } catch (err) {
@@ -32,62 +36,75 @@ exports.getVendorById = async (req, res) => {
   }
 };
 
-// Update
+// Update by vendorId
 exports.updateVendor = async (req, res) => {
+  const { vendorId } = req.params;
   try {
-    req.body.updatedAt = new Date();
-    const vendor = await Vendor.findByIdAndUpdate(req.params.id, req.body, { new: true });
-    if (!vendor) return res.status(404).json({ message: 'Vendor not found' });
+    const updates = req.body;
+    updates.updatedAt = new Date();
+    const vendor = await Vendor.findOneAndUpdate(
+      { vendorId: req.params.vendorId  },
+      req.body,
+      { new: true }
+    );
+    if (!vendor) return res.status(404).json({ error: 'Vendor not found' });
     res.json(vendor);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    res.status(500).json({ error: err.message });
   }
 };
 
-// Delete
+// Delete by vendorId
 exports.deleteVendor = async (req, res) => {
+  const { vendorId } = req.params;
   try {
-    const vendor = await Vendor.findByIdAndDelete(req.params.id);
-    if (!vendor) return res.status(404).json({ message: 'Vendor not found' });
+    const vendor = await Vendor.findOneAndDelete({ vendorId });
+    if (!vendor) return res.status(404).json({ error: 'Vendor not found' });
     res.json({ message: 'Vendor deleted successfully' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
+// Record a payment (push to Expenses) by vendorId
 exports.recordVendorPayment = async (req, res) => {
-  const { id: vendorId } = req.params;
+  const key = req.params.id;
   const { amount, date = new Date().toISOString(), description = '' } = req.body;
 
-  // Validate
   if (typeof amount !== 'number' || amount <= 0) {
     return res.status(400).json({ error: 'Must provide a positive numeric amount' });
   }
 
-  try {
-    // 1) Ensure vendor exists
-    const vendor = await Vendor.findById(vendorId);
-    if (!vendor) return res.status(404).json({ error: 'Vendor not found' });
+  let vendor;
+  // 1) Try Mongo _id
+  if (mongoose.Types.ObjectId.isValid(key)) {
+    vendor = await Vendor.findById(key);
+  }
+  // 2) Fallback to custom vendorId
+  if (!vendor) {
+    vendor = await Vendor.findOne({ vendorId: key });
+  }
+  if (!vendor) {
+    return res.status(404).json({ error: 'Vendor not found' });
+  }
 
-    // 2) Push to Expenses MS
-    const EXPENSES_URL = 'http://localhost:5005/api/expenses';
-    const expensePayload = {
+  try {
+    // 3) Push to Expenses MS
+    const EXPENSES_URL = 'http://localhost:5000/api/expenses'; // gateway URL
+    const payload = {
       type:        'vendor',
       amount,
       description: description || `Payment to vendor ${vendor.name}`,
       date,
-      vendor_id:   vendorId
+      vendor_id:   vendor.vendorId || vendor._id.toString()
     };
 
-    const response = await axios.post(EXPENSES_URL, expensePayload);
-
-    // 3) Return the created expense object (from Expenses MS)
-    return res.status(response.status).json(response.data);
+    const { data, status } = await axios.post(EXPENSES_URL, payload);
+    return res.status(status).json(data);
 
   } catch (err) {
-    console.error('recordVendorPayment error:', err.message || err);
+    console.error('recordVendorPayment error:', err.response?.data || err.message);
     const status = err.response?.status || 500;
-    const msg    = err.response?.data || { error: err.message || 'Unknown error' };
-    return res.status(status).json(msg);
+    return res.status(status).json({ error: err.response?.data || err.message });
   }
 };

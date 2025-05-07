@@ -8,4 +8,5 @@ router.post('/', controller.create);
 router.put('/:id', controller.update);
 router.delete('/:id', controller.remove);
 router.post('/bulk',  controller.createBulk);
+router.post('/logged-employees', controller.getLoggedEmployees);
 module.exports = router;

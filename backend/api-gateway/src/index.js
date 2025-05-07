@@ -23,6 +23,8 @@ app.use('/api/timelogs',   timeLogRoutes);
 app.use('/api/expenses', expenseRoutes);
 app.use('/api/vendors', vendorRoutes);
 
+// app.use('/api/payroll', require('./routes/payroll'));
+
 app.get('/health', (_req, res) => {
   res.json({ status: 'API Gateway OK' });
 });
