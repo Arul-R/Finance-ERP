@@ -11,6 +11,12 @@ exports.getById = async (req, res) => {
   res.json(data);
 };
 
+exports.getByEmail = async (req, res) => {
+  const data = await employeeServices.getEmployeeByEmail(req.params.email);
+  if (!data) return res.status(404).json({ message: 'Employee not found' });
+  res.json(data);
+};
+
 exports.create = async (req, res) => {
   // 1) Create in DB
   const emp = await employeeServices.createEmployee(req.body);

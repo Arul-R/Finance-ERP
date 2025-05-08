@@ -4,7 +4,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "nodemon api-gateway/src/index.js",
-    "start": "concurrently \"npm run dev --prefix employee-services\" \"npm run dev --prefix vendor-service\" \"npm run dev --prefix expense-service\" \"npm run dev --prefix timeLog-service\" \"npm run dev --prefix project-service\" \"npm run dev --prefix payroll-service\" \"npm run dev --prefix client-service\" \"npm run dev --prefix api-gateway\""
+    "start": "concurrently \"npm run dev --prefix auth-service\"  \"npm run dev --prefix employee-services\" \"npm run dev --prefix vendor-service\" \"npm run dev --prefix expense-service\" \"npm run dev --prefix timeLog-service\" \"npm run dev --prefix project-service\" \"npm run dev --prefix payroll-service\" \"npm run dev --prefix client-service\" \"npm run dev --prefix api-gateway\""
   },
   "keywords": [],
   "author": "",

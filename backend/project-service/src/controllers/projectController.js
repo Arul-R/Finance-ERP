@@ -1,5 +1,3 @@
-
-
 const projectService = require('../services/projectService');
 
 exports.getAll = async (req, res) => {
@@ -19,7 +17,7 @@ exports.getAll = async (req, res) => {
 exports.getById = async (req, res) => {
   try {
     const proj = await projectService.getProjectById(req.params.id);
-    if (!proj) return res.status(404).json({ message: 'Not found' });
+    if (!proj) return res.status(404).json({ message: 'Project not found' });
     res.status(200).json(proj);
   } catch (err) {
     console.error('Project/getById error:', err);
@@ -29,6 +27,15 @@ exports.getById = async (req, res) => {
 
 exports.create = async (req, res) => {
   try {
+    const { name, client_id, project_manager, start_date, billing_type } = req.body;
+
+    // Validate required fields
+    if (!name || !client_id || !project_manager || !start_date || !billing_type) {
+      return res.status(400).json({ 
+        message: 'Missing required fields: name, client_id, project_manager, start_date, and billing_type are required' 
+      });
+    }
+
     const newProj = await projectService.createProject(req.body);
     res.status(201).json(newProj);
   } catch (err) {
@@ -39,7 +46,19 @@ exports.create = async (req, res) => {
 
 exports.update = async (req, res) => {
   try {
+    const { name, client_id, project_manager, start_date, billing_type } = req.body;
+
+    // Validate required fields
+    if (!name || !client_id || !project_manager || !start_date || !billing_type) {
+      return res.status(400).json({ 
+        message: 'Missing required fields: name, client_id, project_manager, start_date, and billing_type are required' 
+      });
+    }
+
     const updated = await projectService.updateProject(req.params.id, req.body);
+    if (!updated) {
+      return res.status(404).json({ message: 'Project not found' });
+    }
     res.status(200).json(updated);
   } catch (err) {
     console.error('Project/update error:', err);
@@ -49,8 +68,11 @@ exports.update = async (req, res) => {
 
 exports.remove = async (req, res) => {
   try {
-    await projectService.deleteProject(req.params.id);
-    res.status(200).json({ message: 'Deleted' });
+    const deleted = await projectService.deleteProject(req.params.id);
+    if (!deleted) {
+      return res.status(404).json({ message: 'Project not found' });
+    }
+    res.status(200).json({ message: 'Project deleted successfully' });
   } catch (err) {
     console.error('Project/remove error:', err);
     res.status(500).json({ message: err.message });

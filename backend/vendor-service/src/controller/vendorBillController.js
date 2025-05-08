@@ -112,14 +112,14 @@ exports.updateVendorBill = async (req, res) => {
     const vendor = await Vendor.findOne({ vendorId: bill.vendorId });
     
     // Update the expense record
-    try {
+      try {
       const expense = await updateExpenseForBill(bill, vendor ? vendor.name : 'Unknown Vendor');
       res.json({
         bill,
         expense,
         message: 'Bill and corresponding expense updated successfully'
       });
-    } catch (expenseErr) {
+      } catch (expenseErr) {
       console.error('Error updating expense:', expenseErr);
       res.json({
         bill,
