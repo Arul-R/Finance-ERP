@@ -15,17 +15,87 @@ exports.getAllProjects = (employeeId) => {
   };
 exports.calculateMonthlyRetainerIncome = async (month, year) => {
     try {
-        const activeProjects = await Project.find({ status: 'active' });
-        const totalIncome = activeProjects.reduce((sum, project) => {
-            return sum + (project.monthlyRetainer || 0);
-        }, 0);
+        const startDate = new Date(year, month - 1, 1);
+        const endDate = new Date(year, month, 0);
+
+        const activeProjects = await Project.find({
+            status: 'active',
+            $or: [
+                {
+                    start_date: { $lte: endDate },
+                    $or: [
+                        { end_date: { $gte: startDate } },
+                        { end_date: null }
+                    ]
+                }
+            ]
+        });
+
+        let retainerIncome = 0;
+        let fixedIncome = 0;
+
+        activeProjects.forEach(project => {
+            // Always include monthly retainer if project is active during month
+            retainerIncome += project.monthlyRetainer || 0;
+            
+            // Include fixed billing if project is active during month
+            if (project.billing_type === 'fixed') {
+                fixedIncome += project.total_amount || 0;
+            }
+        });
+
         return {
             month,
             year,
-            totalIncome
+            retainerIncome,
+            fixedIncome,
+            totalIncome: retainerIncome + fixedIncome
         };
     } catch (error) {
-        console.error('Error calculating monthly retainer income:', error);
+        console.error('Error calculating monthly income:', error);
+        throw error;
+    }
+};
+exports.calculateMonthlyRetainerIncome = async (month, year) => {
+    try {
+        const startDate = new Date(year, month - 1, 1);
+        const endDate = new Date(year, month, 0);
+
+        const activeProjects = await Project.find({
+            status: 'active',
+            $or: [
+                {
+                    start_date: { $lte: endDate },
+                    $or: [
+                        { end_date: { $gte: startDate } },
+                        { end_date: null }
+                    ]
+                }
+            ]
+        });
+
+        let retainerIncome = 0;
+        let fixedIncome = 0;
+
+        activeProjects.forEach(project => {
+            // Always include monthly retainer if project is active during month
+            retainerIncome += project.monthlyRetainer || 0;
+            
+            // Include fixed billing if project is active during month
+            if (project.billing_type === 'fixed') {
+                fixedIncome += project.total_amount || 0;
+            }
+        });
+
+        return {
+            month,
+            year,
+            retainerIncome,
+            fixedIncome,
+            totalIncome: retainerIncome + fixedIncome
+        };
+    } catch (error) {
+        console.error('Error calculating monthly income:', error);
         throw error;
     }
 };

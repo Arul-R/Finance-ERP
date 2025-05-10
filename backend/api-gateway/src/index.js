@@ -20,7 +20,7 @@ app.use(express.json());
 app.use('/api/employees',  employeeRoutes);
 app.use('/api/projects',   projectRoutes);
 app.use('/api/clients',    clientRoutes);
-app.use('/api/reports',    reportRoutes);
+app.use('/api/reports', reportRoutes);
 app.use('/api/payrolls',    payrollRoutes);
 app.use('/api/timelogs',   timeLogRoutes); 
 app.use('/api/expenses', expenseRoutes);

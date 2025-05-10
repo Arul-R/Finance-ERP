@@ -6,6 +6,8 @@ const PROJECT_SERVICE_URL = process.env.PROJECT_SERVICE_URL || 'http://localhost
 
 exports.generateMonthlyFinancialReport = async (month, year) => {
     try {
+        console.log(`Generating report for ${month}/${year}`);
+        
         // Get expenses data
         const expenseResponse = await axios.post(`${EXPENSE_SERVICE_URL}/api/expenses/months-expense`, {
             month,
@@ -18,6 +20,9 @@ exports.generateMonthlyFinancialReport = async (month, year) => {
             year
         });
 
+        console.log('Expense data:', expenseResponse.data);
+        console.log('Income data:', incomeResponse.data);
+
         const expenses = expenseResponse.data;
         const income = incomeResponse.data;
 
@@ -27,10 +32,10 @@ exports.generateMonthlyFinancialReport = async (month, year) => {
             .reduce((sum, e) => sum + e.amount, 0);
         const totalExpenses = payrollExpenses + vendorExpenses;
 
-        // Update income calculation to handle both monthly retainer and fixed billing
-        const retainerIncome = income.monthlyRetainer || 0;
-        const projectIncome = income.billing_type === 'fixed' ? income.total_amount : 0;
-        const totalIncome = retainerIncome + projectIncome;
+        // Update income calculation to match project service response
+        const retainerIncome = income.retainerIncome || 0;
+        const fixedIncome = income.fixedIncome || 0;
+        const totalIncome = income.totalIncome || (retainerIncome + fixedIncome);
 
         // Create report object
         const report = new Report({
@@ -55,7 +60,11 @@ exports.generateMonthlyFinancialReport = async (month, year) => {
         await report.save();
         return report;
     } catch (error) {
-        console.error('Error generating monthly financial report:', error);
+        console.error('Full error details:', {
+            message: error.message,
+            stack: error.stack,
+            response: error.response?.data
+        });
         throw error;
     }
 };
