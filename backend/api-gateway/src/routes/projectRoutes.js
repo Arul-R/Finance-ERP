@@ -32,4 +32,14 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
+// New endpoint for calculating monthly retainer income
+router.post('/monthly-income', async (req, res) => {
+  try {
+    const response = await axios.post(`${PROJECT_SERVICE}/monthly-income`, req.body);
+    res.json(response.data);
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to calculate monthly income' });
+  }
+});
+
 module.exports = router;

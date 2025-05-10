@@ -158,3 +158,74 @@ exports.getMonthlyVendorExpenses = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+// Get all expenses for a specific month
+exports.getMonthlyExpenses = async (req, res) => {
+  try {
+    const { month, year } = req.body;
+    if (!month || !year) {
+      return res.status(400).json({ message: 'Month and year are required' });
+    }
+    // Ensure payroll expense is recorded before fetching expenses
+    try {
+      await expenseService.recordMonthlyPayrollExpense(month, year);
+    } catch (err) {
+      // Log but do not block the response if payroll already exists or fails
+      console.warn('Payroll aggregation warning:', err.message);
+    }
+    const expenses = await expenseService.getExpensesByMonthYear(month, year);
+    res.json(expenses);
+  } catch (err) {
+    console.error('Error getting monthly expenses:', err);
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// Get all expenses for a specific month
+exports.getAllMonthlyExpenses = async (req, res) => {
+  try {
+    const { month, year } = req.body;
+    
+    if (!month || !year) {
+      return res.status(400).json({ message: 'Month and year are required' });
+    }
+    
+    // Start of month
+    const startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
+    // Start of next month
+    const endDate = new Date(parseInt(year), parseInt(month), 1);
+    
+    const filter = {
+      date: {
+        $gte: startDate,
+        $lt: endDate
+      }
+    };
+
+    // Get all expenses for the month
+    const expenses = await expenseService.getFilteredExpenses(filter);
+    
+    // Calculate total
+    const totalAmount = expenses.reduce((sum, expense) => sum + expense.amount, 0);
+    
+    // Group expenses by type
+    const expensesByType = expenses.reduce((acc, expense) => {
+      if (!acc[expense.type]) {
+        acc[expense.type] = [];
+      }
+      acc[expense.type].push(expense);
+      return acc;
+    }, {});
+    
+    res.json({
+      month,
+      year,
+      totalAmount,
+      expensesByType,
+      expenses
+    });
+  } catch (err) {
+    console.error('Error getting monthly expenses:', err);
+    res.status(500).json({ error: err.message });
+  }
+};

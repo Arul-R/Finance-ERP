@@ -11,6 +11,10 @@ const projectSchema = new mongoose.Schema({
   assigned_employees: [{ type: String }], // Employee IDs
   employee_count: { type: Number, min: 0 }, // Optional field to track number of employees
   status: { type: String, enum: ['active', 'completed', 'on-hold'], default: 'active' },
+  monthlyRetainer: {
+      type: Number,
+      default: 0
+  },
 }, { timestamps: true });
 
 module.exports = mongoose.model("Project", projectSchema);

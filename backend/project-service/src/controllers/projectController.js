@@ -79,48 +79,16 @@ exports.remove = async (req, res) => {
   }
 };
 
-
-// const service = require("../services/projectService");
-
-// exports.getAll = async (req, res) => {
-//   try {
-//     const { employeeId } = req.query;
-//     const projects = await projectService.getAllProjects(employeeId);
-//     res.json(projects);
-//   } catch (err) {
-//     console.error('Project/getAll error:', err);
-//     res.status(500).json({ message: err.message });
-//   }
-// };
-
-// // exports.getById = async (req, res) => {
-// //   const proj = await projectService.getProjectById(req.params.id);
-// //   if (!proj) return res.status(404).json({ message: 'Not found' });
-// //   res.json(proj);
-// // };
-
-// exports.getAll = async (req, res) => {
-//   const data = await service.getAllProjects();
-//   res.json(data);
-// };
-
-// exports.getById = async (req, res) => {
-//   const data = await service.getProjectById(req.params.id);
-//   if (!data) return res.status(404).json({ message: "Not found" });
-//   res.json(data);
-// };
-
-// exports.create = async (req, res) => {
-//   const created = await service.createProject(req.body);
-//   res.status(201).json(created);
-// };
-
-// exports.update = async (req, res) => {
-//   const updated = await service.updateProject(req.params.id, req.body);
-//   res.json(updated);
-// };
-
-// exports.remove = async (req, res) => {
-//   await service.deleteProject(req.params.id);
-//   res.json({ message: "Deleted" });
-// };
+exports.calculateMonthlyIncome = async (req, res) => {
+    try {
+        const { month, year } = req.body;
+        if (!month || !year) {
+            return res.status(400).json({ message: 'Month and year are required' });
+        }
+        const incomeData = await projectService.calculateMonthlyRetainerIncome(month, year);
+        res.status(200).json(incomeData);
+    } catch (err) {
+        console.error('Error calculating monthly income:', err);
+        res.status(500).json({ message: err.message });
+    }
+};

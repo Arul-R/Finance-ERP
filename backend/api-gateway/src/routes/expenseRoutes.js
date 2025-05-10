@@ -147,3 +147,12 @@ module.exports = router;
 // });
 
 // module.exports = router;
+
+router.post('/months-expense', async (req, res) => {
+  try {
+    const response = await axios.post(`${EXPENSE_SERVICE_URL}/months-expense`, req.body);
+    res.status(response.status).json(response.data);
+  } catch (err) {
+    res.status(err.response?.status || 500).json({ error: err.response?.data?.error || err.message });
+  }
+});

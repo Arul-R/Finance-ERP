@@ -66,18 +66,13 @@ exports.recordMonthlyPayrollExpense = async (month, year) => {
 };
 
 // Get expenses by month/year with optional type filter
-exports.getExpensesByMonthYear = async (month, year, type = null) => {
+exports.getExpensesByMonthYear = async (month, year) => {
   const filter = {
     date: {
       $gte: new Date(year, month - 1, 1),
       $lt: new Date(year, month, 1)
     }
   };
-  
-  if (type) {
-    filter.type = type;
-  }
-  
   return Expense.find(filter).sort({ date: -1 });
 };
 

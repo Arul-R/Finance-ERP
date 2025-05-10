@@ -15,7 +15,7 @@ router.post('/vendor-bills', expenseController.getMonthlyVendorBills);
 // 3) Get individual vendor expenses for a month
 //    MUST come before the `/:id` route
 //    e.g. POST /api/expenses/vendor-expenses
-router.post('/vendor-expenses', expenseController.getMonthlyVendorExpenses);
+router.post('/months-expense', expenseController.getMonthlyExpenses);
 
 // 4) Dynamic-filter GET
 //    e.g. GET /api/expenses?type=vendor&month=5&year=2025

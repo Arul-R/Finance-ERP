@@ -13,4 +13,19 @@ exports.getAllProjects = (employeeId) => {
       return Project.find().sort({ start_date: -1 });
     }
   };
-// exports.getProjectById = id => Project.findById(id);
+exports.calculateMonthlyRetainerIncome = async (month, year) => {
+    try {
+        const activeProjects = await Project.find({ status: 'active' });
+        const totalIncome = activeProjects.reduce((sum, project) => {
+            return sum + (project.monthlyRetainer || 0);
+        }, 0);
+        return {
+            month,
+            year,
+            totalIncome
+        };
+    } catch (error) {
+        console.error('Error calculating monthly retainer income:', error);
+        throw error;
+    }
+};
