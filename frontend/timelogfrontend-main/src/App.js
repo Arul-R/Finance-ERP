@@ -5,16 +5,82 @@ function TimeLogDashboard() {
   const [form, setForm] = useState({
     employee_id: '',
     project_id: '',
-    date: '',
+    date: new Date().toISOString().split('T')[0],
     hours_worked: '',
   });
+  const [loginForm, setLoginForm] = useState({
+    email: '',
+    password: ''
+  });
+  const [signupForm, setSignupForm] = useState({
+    email: '',
+    password: '',
+    role: 'Employee'
+  });
+  const [isLoginMode, setIsLoginMode] = useState(true);
   const [timelogs, setTimelogs] = useState([]);
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
+  const [employee, setEmployee] = useState(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  // Check authentication on component mount
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      // Verify token with auth service
+      axios.get('http://localhost:5009/api/auth/verify', {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      .then(response => {
+        setIsAuthenticated(true);
+        setEmployee(response.data);
+        // Auto-fill employee_id
+        setForm(prev => ({ ...prev, employee_id: response.data._id }));
+      })
+      .catch(err => {
+        console.error('Auth error:', err);
+        localStorage.removeItem('token');
+        setIsAuthenticated(false);
+        setError('Please log in to access the time log system.');
+      });
+    }
+  }, []);
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setError('');
+    try {
+      const response = await axios.post('http://localhost:5009/api/auth/login', loginForm);
+      const { token, user } = response.data;
+      localStorage.setItem('token', token);
+      setIsAuthenticated(true);
+      setEmployee(user);
+      setForm(prev => ({ ...prev, employee_id: user._id }));
+    } catch (err) {
+      console.error('Login error:', err);
+      setError('Invalid email or password');
+    }
+  };
+
+  const handleLoginChange = (e) => {
+    setLoginForm({ ...loginForm, [e.target.name]: e.target.value });
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    setIsAuthenticated(false);
+    setEmployee(null);
+    setForm({ employee_id: '', project_id: '', date: '', hours_worked: '' });
+    setTimelogs([]);
+  };
 
   const fetchTimelogs = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/timelogs');
+      const token = localStorage.getItem('token');
+      const response = await axios.get('http://localhost:5006/api/timelogs', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       setTimelogs(response.data);
     } catch (err) {
       console.error(err);
@@ -23,8 +89,10 @@ function TimeLogDashboard() {
   };
 
   useEffect(() => {
-    fetchTimelogs();
-  }, []);
+    if (isAuthenticated) {
+      fetchTimelogs();
+    }
+  }, [isAuthenticated]);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -34,35 +102,189 @@ function TimeLogDashboard() {
     e.preventDefault();
     setSuccess('');
     setError('');
+
+    // Validate form
+    if (!form.project_id) {
+      setError('Please select a project');
+      return;
+    }
+    if (!form.date) {
+      setError('Please select a date');
+      return;
+    }
+    if (!form.hours_worked || form.hours_worked <= 0) {
+      setError('Please enter valid hours worked');
+      return;
+    }
+
     try {
-      await axios.post('http://localhost:5000/api/timelogs', {
-        ...form,
-        hours_worked: parseFloat(form.hours_worked),
+      const token = localStorage.getItem('token');
+      const payload = {
+        project_id: form.project_id,
+        date: new Date(form.date).toISOString(),
+        hours_worked: parseFloat(form.hours_worked)
+      };
+      
+      console.log('Sending payload:', payload); // Debug log
+      
+      const response = await axios.post('http://localhost:5006/api/timelogs', payload, {
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
       });
-      setForm({ employee_id: '', project_id: '', date: '', hours_worked: '' });
+      
+      console.log('Response:', response.data); // Debug log
+      
+      setForm(prev => ({ 
+        ...prev, 
+        date: new Date().toISOString().split('T')[0],
+        hours_worked: '' 
+      })); // Reset only date and hours, keep project
       setSuccess('Time log added successfully.');
       fetchTimelogs();
     } catch (err) {
-      console.error(err);
-      setError('Failed to submit time log.');
+      console.error('Submit error:', err);
+      console.error('Error response:', err.response?.data); // Debug log
+      setError(err.response?.data?.message || err.response?.data?.error || 'Failed to submit time log');
     }
   };
 
   const formatDate = (dateStr) => new Date(dateStr).toLocaleDateString('en-IN');
 
+  const handleSignup = async (e) => {
+    e.preventDefault();
+    setError('');
+    try {
+      const response = await axios.post('http://localhost:5009/api/auth/signup', signupForm);
+      const { token, user } = response.data;
+      localStorage.setItem('token', token);
+      setIsAuthenticated(true);
+      setEmployee(user);
+      setForm(prev => ({ ...prev, employee_id: user._id }));
+    } catch (err) {
+      console.error('Signup error:', err);
+      setError(err.response?.data?.message || 'Failed to sign up');
+    }
+  };
+
+  const handleSignupChange = (e) => {
+    setSignupForm({ ...signupForm, [e.target.name]: e.target.value });
+  };
+
+  const toggleAuthMode = () => {
+    setIsLoginMode(!isLoginMode);
+    setError('');
+  };
+
+  if (!isAuthenticated) {
+    return (
+      <div style={styles.container}>
+        <h1 style={styles.header}>Time Log Dashboard</h1>
+        <div style={styles.authContainer}>
+          <div style={styles.authBox}>
+            <h2 style={styles.authHeader}>{isLoginMode ? 'Login' : 'Sign Up'}</h2>
+            {isLoginMode ? (
+              <form onSubmit={handleLogin} style={styles.authForm}>
+                <div style={styles.inputGroup}>
+                  <label style={styles.label}>Email</label>
+                  <input
+                    type="email"
+                    name="email"
+                    value={loginForm.email}
+                    onChange={handleLoginChange}
+                    style={styles.input}
+                    required
+                  />
+                </div>
+                <div style={styles.inputGroup}>
+                  <label style={styles.label}>Password</label>
+                  <input
+                    type="password"
+                    name="password"
+                    value={loginForm.password}
+                    onChange={handleLoginChange}
+                    style={styles.input}
+                    required
+                  />
+                </div>
+                <button type="submit" style={styles.authButton}>Login</button>
+              </form>
+            ) : (
+              <form onSubmit={handleSignup} style={styles.authForm}>
+                <div style={styles.inputGroup}>
+                  <label style={styles.label}>Email</label>
+                  <input
+                    type="email"
+                    name="email"
+                    value={signupForm.email}
+                    onChange={handleSignupChange}
+                    style={styles.input}
+                    required
+                  />
+                </div>
+                <div style={styles.inputGroup}>
+                  <label style={styles.label}>Password</label>
+                  <input
+                    type="password"
+                    name="password"
+                    value={signupForm.password}
+                    onChange={handleSignupChange}
+                    style={styles.input}
+                    required
+                    minLength="6"
+                  />
+                </div>
+                <div style={styles.inputGroup}>
+                  <label style={styles.label}>Role</label>
+                  <select
+                    name="role"
+                    value={signupForm.role}
+                    onChange={handleSignupChange}
+                    style={styles.input}
+                    required
+                  >
+                    <option value="Employee">Employee</option>
+                    <option value="Project Manager">Project Manager</option>
+                    <option value="Accountant">Accountant</option>
+                  </select>
+                </div>
+                <button type="submit" style={styles.authButton}>Sign Up</button>
+              </form>
+            )}
+            <div style={styles.authToggle}>
+              <p style={styles.authToggleText}>
+                {isLoginMode ? "Don't have an account? " : "Already have an account? "}
+                <button
+                  onClick={toggleAuthMode}
+                  style={styles.authToggleButton}
+                >
+                  {isLoginMode ? 'Sign Up' : 'Login'}
+                </button>
+              </p>
+            </div>
+          </div>
+        </div>
+        {error && <p style={styles.error}>{error}</p>}
+      </div>
+    );
+  }
+
   return (
     <div style={styles.container}>
-      <h1 style={styles.header}>Time Log Dashboard</h1>
+      <div style={styles.headerContainer}>
+        <h1 style={styles.header}>Time Log Dashboard</h1>
+        <button onClick={handleLogout} style={styles.logoutButton}>Logout</button>
+      </div>
+      <p style={styles.welcome}>Welcome, {employee?.name}</p>
 
       <form onSubmit={handleSubmit} style={styles.form}>
         <input
           type="text"
           name="employee_id"
-          placeholder="Employee ID"
           value={form.employee_id}
-          onChange={handleChange}
-          style={styles.input}
-          required
+          style={{ ...styles.input, backgroundColor: '#f0f0f0' }}
+          disabled
         />
         <input
           type="text"
@@ -134,11 +356,104 @@ const styles = {
     backgroundColor: '#f5f7fa',
     minHeight: '100vh',
   },
+  headerContainer: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '1.5rem',
+  },
   header: {
     fontSize: '2rem',
     color: '#1976d2',
+    margin: 0,
+  },
+  authContainer: {
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    minHeight: '80vh',
+  },
+  authBox: {
+    width: '100%',
+    maxWidth: '400px',
+    backgroundColor: '#fff',
+    padding: '2rem',
+    borderRadius: '12px',
+    boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+  },
+  authHeader: {
+    fontSize: '1.75rem',
+    color: '#1976d2',
     marginBottom: '1.5rem',
     textAlign: 'center',
+    fontWeight: '600',
+  },
+  authForm: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '1.25rem',
+  },
+  inputGroup: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '0.5rem',
+  },
+  label: {
+    fontSize: '0.9rem',
+    color: '#666',
+    fontWeight: '500',
+  },
+  input: {
+    padding: '0.75rem',
+    fontSize: '1rem',
+    borderRadius: '6px',
+    border: '1px solid #ddd',
+    transition: 'border-color 0.2s',
+    '&:focus': {
+      borderColor: '#1976d2',
+      outline: 'none',
+    },
+  },
+  authButton: {
+    padding: '0.75rem',
+    backgroundColor: '#1976d2',
+    color: '#fff',
+    border: 'none',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    fontSize: '1rem',
+    fontWeight: '500',
+    transition: 'background-color 0.2s',
+    marginTop: '0.5rem',
+    '&:hover': {
+      backgroundColor: '#1565c0',
+    },
+  },
+  authToggle: {
+    marginTop: '1.5rem',
+    textAlign: 'center',
+  },
+  authToggleText: {
+    color: '#666',
+    fontSize: '0.9rem',
+  },
+  authToggleButton: {
+    background: 'none',
+    border: 'none',
+    color: '#1976d2',
+    cursor: 'pointer',
+    fontSize: '0.9rem',
+    fontWeight: '500',
+    padding: '0',
+    '&:hover': {
+      textDecoration: 'underline',
+    },
+  },
+  welcome: {
+    fontSize: '1.2rem',
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: '1rem',
   },
   subHeader: {
     fontSize: '1.25rem',
@@ -154,13 +469,6 @@ const styles = {
     borderRadius: '8px',
     boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
   },
-  input: {
-    flex: '1 1 200px',
-    padding: '0.75rem',
-    fontSize: '1rem',
-    borderRadius: '4px',
-    border: '1px solid #ccc',
-  },
   button: {
     padding: '0.75rem 1.5rem',
     backgroundColor: '#1976d2',
@@ -169,6 +477,15 @@ const styles = {
     borderRadius: '4px',
     cursor: 'pointer',
     fontSize: '1rem',
+  },
+  logoutButton: {
+    padding: '0.5rem 1rem',
+    backgroundColor: '#dc3545',
+    color: '#fff',
+    border: 'none',
+    borderRadius: '4px',
+    cursor: 'pointer',
+    fontSize: '0.9rem',
   },
   success: {
     color: 'green',

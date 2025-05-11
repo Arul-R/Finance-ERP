@@ -17,11 +17,14 @@ exports.getFilteredExpenses = async (filters) => {
 exports.recordMonthlyPayrollExpense = async (month, year) => {
   try {
     // Call payroll service to calculate total payroll for the month
-    const PAYROLL_URL = process.env.PAYROLL_URL || 'http://localhost:5004/api/payrolls/calculate';
-    const { data: payrollData } = await axios.post(PAYROLL_URL, {
-      month,
-      year
+    const PAYROLL_URL = process.env.PAYROLL_URL || 'http://localhost:5004/api/payrolls';
+    console.log('Fetching payroll data for:', { month, year });
+    const { data: payrollData } = await axios.post(`${PAYROLL_URL}/calculate`, {
+      month: parseInt(month),
+      year: parseInt(year)
     });
+    
+    console.log('Received payroll data:', payrollData);
     
     // Check if there are any payrolls for the month
     if (!payrollData || !payrollData.totalAmount || payrollData.totalAmount <= 0) {
@@ -60,7 +63,7 @@ exports.recordMonthlyPayrollExpense = async (month, year) => {
       return expense;
     }
   } catch (error) {
-    console.error('Error recording monthly payroll expense:', error);
+    console.error('Error recording monthly payroll expense:', error.response?.data || error.message);
     throw error;
   }
 };

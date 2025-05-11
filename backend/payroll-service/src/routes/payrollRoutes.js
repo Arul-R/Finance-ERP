@@ -1,12 +1,16 @@
 // payroll-service/src/routes/payrollRoutes.js
-const express    = require('express');
-const router     = express.Router();
-const controller = require('../controllers/payrollController');  // exactly this
+const express = require('express');
+const router = express.Router();
+const controller = require('../controllers/payrollController');
+const auth = require('../middleware/auth');
 
-router.get('/',       controller.getAll);
-router.get('/:id',    controller.getById);
-router.post('/',      controller.create);
-router.put('/:id',    controller.update);
+// Protected routes
+router.use(auth);
+
+router.get('/', controller.getAll);
+router.get('/:id', controller.getById);
+router.post('/', controller.create);
+router.put('/:id', controller.update);
 router.delete('/:id', controller.remove);
 router.get("/employee/:employeeId", controller.getByEmployee);
 router.get("/month-year", controller.getByMonthYear);

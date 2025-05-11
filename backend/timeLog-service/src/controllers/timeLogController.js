@@ -1,5 +1,6 @@
 const TimeLog = require('../models/TimeLog');
 const timelogServices = require('../services/timelogServices');
+const axios = require('axios');
 
 exports.getAll = async (req, res) => {
   try {
@@ -37,10 +38,53 @@ exports.getById = async (req, res) => {
 
 exports.create = async (req, res) => {
   try {
-    const { employee_id, project_id, date, hours_worked } = req.body;
-    const log = await TimeLog.create({ employee_id, project_id, date, hours_worked });
+    const { project_id, date, hours_worked } = req.body;
+    const employee_id = req.user.userId; // Get employee_id from JWT token
+
+    const log = await TimeLog.create({ 
+      employee_id, 
+      project_id, 
+      date, 
+      hours_worked 
+    });
+
+    // Notify payroll service about the new timelog
+    try {
+      const PAYROLL_URL = process.env.PAYROLL_URL || 'http://localhost:5004/api/payrolls';
+      const month = new Date(date).getMonth() + 1; // +1 because getMonth() returns 0-11
+      const year = new Date(date).getFullYear();
+      
+      console.log('Notifying payroll service:', { month, year });
+      await axios.post(`${PAYROLL_URL}/calculate`, { 
+        month: parseInt(month), 
+        year: parseInt(year) 
+      });
+      console.log('Payroll service notified successfully');
+    } catch (error) {
+      console.error('Error notifying payroll service:', error.response?.data || error.message);
+      // Don't fail the request if payroll service notification fails
+    }
+
+    // Notify expense service about the new timelog
+    try {
+      const EXPENSE_URL = process.env.EXPENSE_URL || 'http://localhost:5000/api/expenses';
+      const month = new Date(date).getMonth() + 1;
+      const year = new Date(date).getFullYear();
+      
+      console.log('Notifying expense service:', { month, year });
+      await axios.post(`${EXPENSE_URL}/payroll`, { 
+        month: parseInt(month), 
+        year: parseInt(year) 
+      });
+      console.log('Expense service notified successfully');
+    } catch (error) {
+      console.error('Error notifying expense service:', error.response?.data || error.message);
+      // Don't fail the request if expense service notification fails
+    }
+
     res.status(201).json(log);
   } catch (err) {
+    console.error('Create timelog error:', err);
     res.status(400).json({ error: err.message });
   }
 };
