@@ -1,12 +1,16 @@
 const express = require('express');
 const router = express.Router();
-const controller = require('../controllers/projectController'); // Ensure this path is correct
+const controller = require('../controllers/projectController');
+const { auth, checkRole } = require('../middleware/auth');
 
+// Public routes (no auth required)
 router.get("/", controller.getAll);
 router.get("/:id", controller.getById);
-router.post("/", controller.create);
-router.put("/:id", controller.update);
-router.delete("/:id", controller.remove);
-router.post('/monthly-income', controller.calculateMonthlyIncome);
+
+// Protected routes (Admin only)
+router.post("/", auth, checkRole('Admin'), controller.create);
+router.put("/:id", auth, checkRole('Admin'), controller.update);
+router.delete("/:id", auth, checkRole('Admin'), controller.remove);
+router.post('/monthly-income', auth, checkRole('Admin'), controller.calculateMonthlyIncome);
 
 module.exports = router;

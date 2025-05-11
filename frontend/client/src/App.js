@@ -1,32 +1,41 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-
-import ClientDashboard from './pages/Dashboard'; // Assuming you have a ClientDashboard component
-import AddClient from './pages/AddClient'; // AddClient component
-import EditClient from './pages/EditClient'; // EditClient component
-import ViewClient from './component/ClientDetails'; // ViewClient component
-import ClientList from './component/ClientList'; // ClientList component
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext';
+import ProtectedRoute from './components/ProtectedRoute';
+import Login from './pages/Login';
+import ClientList from './pages/ClientList';
+import ClientForm from './pages/ClientForm';
+import Layout from './components/Layout';
 
 function App() {
   return (
-    <Router>
-      <Routes>
-        {/* Dashboard page */}
-        <Route path="/" element={<ClientDashboard />} />
-
-        {/* Add Client page */}
-        <Route path="/add-client" element={<AddClient />} />
-
-        {/* Edit Client page */}
-        <Route path="/edit-client/:id" element={<EditClient />} />
-
-        {/* View Client page */}
-        <Route path="/client/:id" element={<ViewClient />} />
-
-        {/* List of Clients */}
-        <Route path="/clients" element={<ClientList />} />
-      </Routes>
-    </Router>
+    <AuthProvider>
+      <Router>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          
+          <Route path="/" element={
+            <ProtectedRoute>
+              <Layout />
+            </ProtectedRoute>
+          }>
+            <Route index element={<ClientList />} />
+            <Route path="add" element={
+              <ProtectedRoute requiredRole="Admin">
+                <ClientForm />
+              </ProtectedRoute>
+            } />
+            <Route path="edit/:id" element={
+              <ProtectedRoute requiredRole="Admin">
+                <ClientForm />
+              </ProtectedRoute>
+            } />
+          </Route>
+          
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Router>
+    </AuthProvider>
   );
 }
 

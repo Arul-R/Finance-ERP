@@ -7,12 +7,14 @@ const clientSchema = new mongoose.Schema({
   poc_name: { type: String, required: true },
   poc_email: { type: String, required: true },
   poc_phone: { type: String },
-  status: { type: String, enum: ["active", "inactive"], default: "active" } ,
+  status: { type: String, enum: ["active", "inactive"], default: "active" },
   createdAt: { type: Date, default: Date.now },
-  updatedAt: { type: Date }  
+  updatedAt: { type: Date }
 });
+
 clientSchema.pre('findOneAndUpdate', function (next) {
   this.set({ updatedAt: new Date() });
   next();
 });
+
 module.exports = mongoose.model("Client", clientSchema);

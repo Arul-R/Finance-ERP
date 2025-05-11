@@ -3,7 +3,7 @@ const Payroll = require('../models/Payroll');
 
 const EMPLOYEE_URL = 'http://localhost:5001/api/employees';
 const TIMELOG_URL = 'http://localhost:5006/api/timelogs';
-const EXPENSE_URL = 'http://localhost:5005/api/expenses';
+const EXPENSE_URL = 'http://localhost:5000/api/expenses';
 
 // Basic CRUD operations
 exports.getAllPayrolls = () => Payroll.find().sort({ year: -1, month: -1 });
@@ -75,12 +75,37 @@ exports.calculateEmployeePayroll = async (employeeId, month, year) => {
 // Calculate payroll for all employees for a specific month
 exports.calculateMonthlyPayroll = async (month, year) => {
   try {
+    // Validate month and year
+    if (month < 1 || month > 12) {
+      throw new Error('Invalid month. Must be between 1 and 12');
+    }
+
+    const currentDate = new Date();
+    const requestedDate = new Date(year, month - 1, 1);
+    
+    // If requesting future date, return empty result with message
+    if (requestedDate > currentDate) {
+      return {
+        payrolls: [],
+        totalAmount: 0,
+        message: `Cannot calculate payroll for future date ${year}-${month}`
+      };
+    }
+
     // Get all employees who logged time in the specified month
     const { data: activeEmployees } = await axios.post(
       `${TIMELOG_URL}/logged-employees`,
       { month, year }
     );
     
+    if (!activeEmployees || activeEmployees.length === 0) {
+      return {
+        payrolls: [],
+        totalAmount: 0,
+        message: `No employees logged time for ${year}-${month}`
+      };
+    }
+
     // Get all employees
     const { data: allEmployees } = await axios.get(EMPLOYEE_URL);
     
@@ -162,11 +187,12 @@ exports.calculateMonthlyPayroll = async (month, year) => {
     
     return {
       payrolls,
-      totalAmount: totalPayrollAmount
+      totalAmount: totalPayrollAmount,
+      message: `Successfully calculated payroll for ${year}-${month}`
     };
   } catch (error) {
     console.error('Error calculating monthly payroll:', error);
-    throw error;
+    throw new Error(`Payroll calculation failed: ${error.message}`);
   }
 };
 

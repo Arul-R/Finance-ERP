@@ -16,6 +16,16 @@ router.get('/', async (req, res) => {
   }
 });
 
+router.get('/month-year', async (req, res) => {
+  try {
+    const { month, year } = req.query;
+    const response = await axios.get(`${PAYROLL_SERVICE_BASE}/month-year`, { params: { month, year } });
+    res.json(response.data);
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to retrieve payrolls for the specified month and year' });
+  }
+});
+
 // POST to create a payroll record manually (optional)
 router.post('/', async (req, res) => {
   try {
